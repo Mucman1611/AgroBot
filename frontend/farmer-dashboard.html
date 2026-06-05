@@ -1,1 +1,148 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriAssistant - Poljoprivredni dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🌾</span>
+            <span>AgriAssistant</span>
+        </div>
+        <div class="nav-links">
+            <span class="user-info">
+                <span id="farmerName">Franjo Horvat</span>
+                <span class="user-role role-farmer" id="farmerRole">Poljoprivrednik</span>
+            </span>
+            <a href="#" id="logoutBtn" class="btn btn-outline btn-sm">Odjava</a>
+        </div>
+    </nav>
 
+    <div class="container">
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="myFarms">0</div>
+                <div class="stat-label">Moja gospodarstva</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ff8f00, #e65100);">
+                <div class="stat-number" id="myDeadlines">0</div>
+                <div class="stat-label">Aktivnih rokova</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📋 Moji OPG-ovi</span>
+                <button class="btn btn-primary btn-sm" onclick="showAddFarmModal()">+ Dodaj OPG</button>
+            </div>
+            <div id="myFarmsList"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>🎙️ Glasovno upravljanje (R001)</span>
+            </div>
+            <div style="text-align: center; padding: 20px;">
+                <button id="voiceBtn" class="btn btn-primary" style="padding: 20px 40px; font-size: 1.5rem;">🎤 "Prijavi sve parcele"</button>
+                <p id="voiceStatus" style="margin-top: 15px; color: #666;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="addFarmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dodaj OPG</h2>
+                <button class="close-modal" onclick="closeAddFarmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addFarmForm">
+                    <div class="form-group"><label>Naziv OPG-a</label><input type="text" id="farmName" required></div>
+                    <div class="form-group"><label>Lokacija</label><input type="text" id="farmLocation" required></div>
+                    <div class="form-group"><label>Površina (ha)</label><input type="number" id="farmArea" step="0.1" required></div>
+                    <button type="submit" class="btn btn-primary">Dodaj</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = 'index.html';
+        }
+        
+        async function loadFarmerData() {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/farmer/farms`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const farms = await response.json();
+                document.getElementById('myFarms').textContent = farms.length;
+                document.getElementById('myFarmsList').innerHTML = farms.map(f => `
+                    <div class="farm-item"><div><strong>${f.name}</strong><br>${f.location} | ${f.total_area_ha} ha</div></div>
+                `).join('');
+            }
+        }
+        
+        // Glasovna naredba (R001)
+        const voiceBtn = document.getElementById('voiceBtn');
+        const voiceStatus = document.getElementById('voiceStatus');
+        
+        voiceBtn.onclick = async () => {
+            voiceStatus.textContent = '🎙️ Slušam... Recite "Prijavi sve parcele"';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                const audioChunks = [];
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob);
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`${API_URL}/voice/command`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+                    const data = await response.json();
+                    voiceStatus.textContent = data.message;
+                    if (data.status === 'success') loadFarmerData();
+                };
+                mediaRecorder.start();
+                setTimeout(() => mediaRecorder.stop(), 5000);
+                setTimeout(() => stream.getTracks().forEach(track => track.stop()), 5000);
+            } catch (err) {
+                voiceStatus.textContent = '❌ Greška pri pristupu mikrofonu';
+            }
+        };
+        
+        function showAddFarmModal() { document.getElementById('addFarmModal').classList.add('active'); }
+        function closeAddFarmModal() { document.getElementById('addFarmModal').classList.remove('active'); }
+        
+        document.getElementById('addFarmForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/farmer/farms/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ name: document.getElementById('farmName').value, location: document.getElementById('farmLocation').value, total_area_ha: parseFloat(document.getElementById('farmArea').value) })
+            });
+            closeAddFarmModal();
+            loadFarmerData();
+        };
+        
+        document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); window.location.href = 'index.html'; };
+        
+        checkAuth();
+        loadFarmerData();
+    </script>
+</body>
+</html>
