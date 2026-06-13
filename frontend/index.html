@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Navigacija -->
     <nav class="navbar">
         <div class="logo">
             <span class="logo-icon">🌾</span>
@@ -15,13 +14,12 @@
         </div>
         <div class="nav-links">
             <a href="#">Početna</a>
-            <a href="#">O nama</a>
+            <a href="onama.html">O nama</a>
             <a href="#" id="loginBtnNav" class="btn btn-outline">Prijava</a>
             <a href="#" id="registerBtnNav" class="btn btn-primary">Registracija</a>
         </div>
     </nav>
 
-    <!-- Hero sekcija -->
     <div class="container">
         <div style="text-align: center; padding: 60px 0;">
             <h1 style="font-size: 3rem; color: var(--primary-dark);">🌾 AI asistent za poljoprivrednike</h1>
@@ -32,7 +30,6 @@
             </div>
         </div>
 
-        <!-- Značajke -->
         <div class="dashboard-grid">
             <div class="card" style="text-align: center;">
                 <div style="font-size: 3rem;">🎙️</div>
@@ -52,7 +49,6 @@
         </div>
     </div>
 
-    <!-- Modal za prijavu -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -76,7 +72,6 @@
         </div>
     </div>
 
-    <!-- Modal za registraciju -->
     <div id="registerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -116,99 +111,6 @@
         </div>
     </div>
 
-    <script>
-        // Autentifikacija (T2)
-        const API_URL = 'http://localhost:5000/api';
-        
-        // Prikaz modala
-        function showLoginModal() { document.getElementById('loginModal').classList.add('active'); }
-        function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
-        function showRegisterModal() { document.getElementById('registerModal').classList.add('active'); }
-        function closeRegisterModal() { document.getElementById('registerModal').classList.remove('active'); }
-        
-        // Event listeneri za gumbe
-        document.getElementById('loginBtnNav').onclick = (e) => { e.preventDefault(); showLoginModal(); };
-        document.getElementById('registerBtnNav').onclick = (e) => { e.preventDefault(); showRegisterModal(); };
-        document.getElementById('registerBtnHero').onclick = (e) => { e.preventDefault(); showRegisterModal(); };
-        document.getElementById('agentBtnHero').onclick = (e) => { e.preventDefault(); document.getElementById('regRole').value = 'agent'; showRegisterModal(); };
-        
-        // Pokaži/sakrij polje za delegiranje (uloga "unuk")
-        document.getElementById('regRole').onchange = function() {
-            const group = document.getElementById('delegatedToGroup');
-            group.style.display = this.value === 'grandchild' ? 'block' : 'none';
-        };
-        
-        // Prijava
-        document.getElementById('loginForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('userRole', data.role);
-                    localStorage.setItem('userId', data.user_id);
-                    
-                    // Preusmjeri prema ulozi
-                    if (data.role === 'agent') {
-                        window.location.href = 'agent-dashboard.html';
-                    } else {
-                        window.location.href = 'farmer-dashboard.html';
-                    }
-                } else {
-                    document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">${data.error}</div>`;
-                }
-            } catch (error) {
-                document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">Greška pri povezivanju</div>`;
-            }
-        };
-        
-        // Registracija
-        document.getElementById('registerForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
-            const role = document.getElementById('regRole').value;
-            const delegatedToEmail = document.getElementById('delegatedToEmail').value;
-            
-            const body = { full_name: name, email, password, role };
-            if (role === 'grandchild' && delegatedToEmail) {
-                // Prvo dohvati ID farmera po emailu
-                const userRes = await fetch(`${API_URL}/user/by-email?email=${delegatedToEmail}`);
-                const userData = await userRes.json();
-                if (userData.id) body.delegated_to_id = userData.id;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    closeRegisterModal();
-                    showLoginModal();
-                    document.getElementById('registerAlert').innerHTML = '<div class="alert alert-success">Registracija uspješna! Prijavite se.</div>';
-                } else {
-                    document.getElementById('registerAlert').innerHTML = `<div class="alert alert-error">${data.error}</div>`;
-                }
-            } catch (error) {
-                document.getElementById('registerAlert').innerHTML = `<div class="alert alert-error">Greška pri registraciji</div>`;
-            }
-        };
-    </script>
+    <script src="js/auth.js"></script>
 </body>
 </html>

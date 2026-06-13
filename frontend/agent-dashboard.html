@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Navigacija -->
     <nav class="navbar">
         <div class="logo">
             <span class="logo-icon">🌾</span>
@@ -15,7 +14,7 @@
         </div>
         <div class="nav-links">
             <span class="user-info">
-                <span id="agentName">Zdenka Pavlović</span>
+                <span id="agentName"></span>
                 <span class="user-role role-agent">Agent</span>
             </span>
             <a href="#" id="logoutBtn" class="btn btn-outline btn-sm">Odjava</a>
@@ -23,7 +22,6 @@
     </nav>
 
     <div class="container">
-        <!-- Statistika -->
         <div class="dashboard-grid">
             <div class="stat-card">
                 <div class="stat-number" id="totalFarms">0</div>
@@ -39,9 +37,7 @@
             </div>
         </div>
 
-        <!-- Glavni sadržaj -->
         <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
-            <!-- Lijeva strana: Popis OPG-ova -->
             <div class="card">
                 <div class="card-header">
                     <span>📋 Moji OPG-ovi</span>
@@ -52,7 +48,6 @@
                 </div>
             </div>
 
-            <!-- Desna strana: Detalji odabranog OPG-a -->
             <div class="card">
                 <div class="card-header">
                     <span id="selectedFarmTitle">Odaberite OPG za pregled</span>
@@ -65,7 +60,6 @@
             </div>
         </div>
 
-        <!-- Kalendar rokova (donji dio) -->
         <div class="card" style="margin-top: 20px;">
             <div class="card-header">
                 <span>📅 Kalendar svih rokova</span>
@@ -84,13 +78,10 @@
                     <option value="11">Prosinac</option>
                 </select>
             </div>
-            <div id="calendarView" class="calendar-view">
-                <!-- Kalendar se učitava JS-om -->
-            </div>
+            <div id="calendarView" class="calendar-view"></div>
         </div>
     </div>
 
-    <!-- Modal za dodavanje OPG-a -->
     <div id="addFarmModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -121,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Modal za ispunjavanje prijave umjesto klijenta (R007) -->
     <div id="applicationModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -140,8 +130,8 @@
                         <label>Dodatne napomene</label>
                         <textarea id="appNotes" rows="3"></textarea>
                     </div>
-                    <p class="alert alert-info" style="font-size: 0.85rem;">
-                        🔐 Nakon što ispunite obrazac, klijent će dobiti zahtjev za potpis (otiskom prsta ili SMS kodom).
+                    <p class="alert alert-warning" style="font-size: 0.85rem;">
+                        🔐 Nakon što ispunite obrazac, klijent će dobiti zahtjev za potpis.
                     </p>
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Pošalji klijentu na potpis</button>
                 </form>
@@ -154,98 +144,93 @@
         let currentFarmId = null;
         let allFarms = [];
 
-        // Provjera autentifikacije
         function checkAuth() {
             const token = localStorage.getItem('token');
             const role = localStorage.getItem('userRole');
-            if (!token || role !== 'agent') {
-                window.location.href = 'index.html';
-            }
+            if (!token || role !== 'agent') window.location.href = 'index.html';
         }
 
-        // Dohvat agentovih OPG-ova (T3 - R003)
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
+
         async function loadFarms() {
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/agent/farms`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
             if (response.ok) {
                 allFarms = await response.json();
                 document.getElementById('totalFarms').textContent = allFarms.length;
                 renderFarmList();
                 updateStatistics();
+            } else {
+                window.location.href = 'index.html';
             }
         }
 
-        // Prikaz popisa OPG-ova
         function renderFarmList() {
             const container = document.getElementById('farmList');
             if (allFarms.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 20px;">Još nemate dodanih OPG-ova</p>';
+                container.innerHTML = '<p style="text-align:center;padding:20px;color:#999;">Još nemate dodanih OPG-ova</p>';
                 return;
             }
-            
             container.innerHTML = allFarms.map(farm => `
                 <div class="farm-item ${currentFarmId === farm.id ? 'selected' : ''}" onclick="selectFarm(${farm.id})">
                     <div>
                         <div class="farm-name">${escapeHtml(farm.name)}</div>
-                        <div style="font-size: 0.8rem; color: #666;">${farm.location} | ${farm.total_area_ha} ha</div>
+                        <div style="font-size:0.8rem;color:#666;">${escapeHtml(farm.location)} | ${farm.total_area_ha} ha</div>
                     </div>
-                    <div>
-                        ${farm.deadlines && farm.deadlines.length > 0 ? 
-                            `<div class="farm-deadline">📅 ${farm.deadlines.length} rokova</div>` : 
-                            '<div style="font-size: 0.7rem; color: #999;">nema rokova</div>'}
-                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openApplicationForFarm(${farm.id}, '${escapeHtml(farm.name)}')">+ Prijava</button>
+                    <div style="text-align:right;">
+                        ${farm.deadlines && farm.deadlines.length > 0
+                            ? `<div class="farm-deadline">📅 ${farm.deadlines.length} rokova</div>`
+                            : '<div style="font-size:0.7rem;color:#999;">nema rokova</div>'}
+                        <button class="btn btn-primary btn-sm" style="margin-top:5px;" onclick="event.stopPropagation(); openApplicationForFarm(${farm.id}, '${escapeHtml(farm.name)}')">+ Prijava</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Odabir OPG-a za prikaz detalja
-        async function selectFarm(farmId) {
+        function selectFarm(farmId) {
             currentFarmId = farmId;
             const farm = allFarms.find(f => f.id === farmId);
             if (!farm) return;
-            
             document.getElementById('selectedFarmTitle').innerHTML = `🌾 ${escapeHtml(farm.name)} - detalji`;
             renderFarmDetails(farm);
-            renderFarmList(); // Osvježi oznaku odabira
+            renderFarmList();
         }
 
-        // Prikaz detalja OPG-a (rokove, prijave)
         function renderFarmDetails(farm) {
             const container = document.getElementById('farmDetails');
             container.innerHTML = `
-                <div class="card" style="margin-bottom: 15px;">
-                    <h3>📊 Osnovni podaci</h3>
+                <div style="margin-bottom:15px;">
+                    <h3 style="margin-bottom:10px;">📊 Osnovni podaci</h3>
                     <p><strong>Lokacija:</strong> ${escapeHtml(farm.location)}</p>
                     <p><strong>Površina:</strong> ${farm.total_area_ha} ha</p>
                     <p><strong>Broj parcela:</strong> ${farm.parcels_count || 'N/A'}</p>
                 </div>
-                <div class="card">
-                    <h3>📅 Predstojeći rokovi</h3>
+                <div style="margin-bottom:15px;">
+                    <h3 style="margin-bottom:10px;">📅 Predstojeći rokovi</h3>
                     ${farm.deadlines && farm.deadlines.length > 0 ? `
                         <div class="table-responsive">
                             <table>
-                                <thead>
-                                    <tr><th>Natječaj</th><th>Datum isteka</th><th>Status</th></tr>
-                                </thead>
+                                <thead><tr><th>Natječaj</th><th>Datum isteka</th><th>Status</th></tr></thead>
                                 <tbody>
                                     ${farm.deadlines.map(d => `
                                         <tr>
                                             <td>${escapeHtml(d.competition_name)}</td>
-                                            <td>${d.deadline_date}</td>
+                                            <td>${d.deadline_date.split('T')[0]}</td>
                                             <td><span class="status-badge status-${d.status}">${d.status}</span></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
-                    ` : '<p style="color: #999;">Nema aktivnih rokova</p>'}
+                    ` : '<p style="color:#999;">Nema aktivnih rokova</p>'}
                 </div>
-                <div class="card">
-                    <h3>📄 Prethodne prijave</h3>
+                <div>
+                    <h3 style="margin-bottom:10px;">📄 Prethodne prijave</h3>
                     ${farm.applications && farm.applications.length > 0 ? `
                         <div class="table-responsive">
                             <table>
@@ -254,7 +239,7 @@
                                     ${farm.applications.map(a => `
                                         <tr>
                                             <td>${escapeHtml(a.competition_name)}</td>
-                                            <td>${a.submitted_date}</td>
+                                            <td>${a.submitted_date.split('T')[0]}</td>
                                             <td><span class="status-badge status-${a.status}">${a.status}</span></td>
                                             <td>${a.signed ? '✅ Potpisano' : '⏳ Čeka potpis'}</td>
                                         </tr>
@@ -262,173 +247,131 @@
                                 </tbody>
                             </table>
                         </div>
-                    ` : '<p style="color: #999;">Nema prijava</p>'}
+                    ` : '<p style="color:#999;">Nema prijava</p>'}
                 </div>
             `;
         }
 
-        // Otvaranje modal za prijavu umjesto klijenta (T3 - R007)
         async function openApplicationForFarm(farmId, farmName) {
             currentFarmId = farmId;
             document.getElementById('appFarmName').textContent = farmName;
-            
-            // Dohvat dostupnih natječaja
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/competitions/available`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
             if (response.ok) {
                 const competitions = await response.json();
                 const select = document.getElementById('competitionSelect');
-                select.innerHTML = '<option value="">-- Odaberite --</option>' + 
-                    competitions.map(c => `<option value="${c.id}">${c.name} (rok: ${c.deadline})</option>`).join('');
+                select.innerHTML = '<option value="">-- Odaberite --</option>' +
+                    competitions.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (rok: ${c.deadline.split('T')[0]})</option>`).join('');
             }
-            
             document.getElementById('applicationModal').classList.add('active');
         }
 
-        // Slanje zahtjeva za potpis klijentu (R007)
         document.getElementById('applicationForm').onsubmit = async (e) => {
             e.preventDefault();
             const token = localStorage.getItem('token');
             const competitionId = document.getElementById('competitionSelect').value;
             const notes = document.getElementById('appNotes').value;
-            
+            if (!competitionId) { alert('Odaberite natječaj'); return; }
             const response = await fetch(`${API_URL}/agent/farm/${currentFarmId}/submit`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ competition_id: competitionId, notes: notes })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ competition_id: parseInt(competitionId), notes })
             });
-            
             if (response.ok) {
                 alert('✅ Prijava je poslana klijentu na potpis!');
                 closeApplicationModal();
-                loadFarms(); // Osvježi podatke
+                loadFarms();
             } else {
                 const error = await response.json();
-                alert('Greška: ' + error.error);
+                alert('Greška: ' + (error.detail || error.error));
             }
         };
 
-        // Kalendar rokova
         async function loadCalendar() {
             const month = document.getElementById('monthSelect').value;
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/agent/calendar?month=${month}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
             if (response.ok) {
                 const deadlines = await response.json();
                 renderCalendar(deadlines);
-                document.getElementById('upcomingDeadlines').textContent = deadlines.filter(d => d.days_until <= 7).length;
+                document.getElementById('upcomingDeadlines').textContent = deadlines.filter(d => d.days_until >= 0 && d.days_until <= 7).length;
             }
         }
 
         function renderCalendar(deadlines) {
-            const today = new Date();
             const month = parseInt(document.getElementById('monthSelect').value);
-            const year = today.getFullYear();
+            const year = new Date().getFullYear();
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
-            const startOffset = firstDay.getDay();
-            
-            let html = '<div class="calendar-header">';
             const weekdays = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
-            weekdays.forEach(day => html += `<div>${day}</div>`);
-            html += '</div><div style="display: grid; grid-template-columns: repeat(7, 1fr);">';
-            
-            // Prazni dani prije početka mjeseca
-            for (let i = 0; i < (startOffset + 6) % 7; i++) {
-                html += '<div class="calendar-day"></div>';
-            }
-            
+            let html = '<div class="calendar-header">' + weekdays.map(d => `<div>${d}</div>`).join('') + '</div>';
+            html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);">';
+            const offset = (firstDay.getDay() + 6) % 7;
+            for (let i = 0; i < offset; i++) html += '<div class="calendar-day"></div>';
             for (let d = 1; d <= lastDay.getDate(); d++) {
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const dayDeadlines = deadlines.filter(dl => dl.date === dateStr);
-                const hasDeadline = dayDeadlines.length > 0;
-                html += `<div class="calendar-day ${hasDeadline ? 'has-deadline' : ''}">
-                            <strong>${d}</strong>`;
-                if (hasDeadline) {
+                html += `<div class="calendar-day ${dayDeadlines.length > 0 ? 'has-deadline' : ''}">
+                    <strong>${d}</strong>`;
+                if (dayDeadlines.length > 0) {
                     html += `<div class="deadline-marker">${dayDeadlines.length} rok</div>`;
                     dayDeadlines.forEach(dl => {
-                        html += `<div style="font-size: 0.7rem; margin-top: 5px;">${dl.farm_name}: ${dl.competition_name}</div>`;
+                        html += `<div style="font-size:0.7rem;margin-top:3px;">${escapeHtml(dl.farm_name)}: ${escapeHtml(dl.competition_name)}</div>`;
                     });
                 }
-                html += `</div>`;
+                html += '</div>';
             }
             html += '</div>';
             document.getElementById('calendarView').innerHTML = html;
         }
 
-        // Statistika
         function updateStatistics() {
-            const pending = allFarms.reduce((sum, farm) => 
+            const pending = allFarms.reduce((sum, farm) =>
                 sum + (farm.applications?.filter(a => !a.signed).length || 0), 0);
             document.getElementById('pendingApplications').textContent = pending;
         }
 
-        // Dodavanje OPG-a
-        function showAddFarmModal() {
-            document.getElementById('addFarmModal').classList.add('active');
-        }
-        function closeAddFarmModal() {
-            document.getElementById('addFarmModal').classList.remove('active');
-        }
+        function showAddFarmModal() { document.getElementById('addFarmModal').classList.add('active'); }
+        function closeAddFarmModal() { document.getElementById('addFarmModal').classList.remove('active'); }
         function closeApplicationModal() {
             document.getElementById('applicationModal').classList.remove('active');
+            document.getElementById('applicationForm').reset();
         }
-        
+
         document.getElementById('addFarmForm').onsubmit = async (e) => {
             e.preventDefault();
             const token = localStorage.getItem('token');
-            const data = {
-                name: document.getElementById('farmName').value,
-                location: document.getElementById('farmLocation').value,
-                total_area_ha: parseFloat(document.getElementById('farmArea').value),
-                owner_email: document.getElementById('farmOwnerEmail').value
-            };
-            
             const response = await fetch(`${API_URL}/agent/farms/add`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(data)
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    name: document.getElementById('farmName').value,
+                    location: document.getElementById('farmLocation').value,
+                    total_area_ha: parseFloat(document.getElementById('farmArea').value),
+                    owner_email: document.getElementById('farmOwnerEmail').value
+                })
             });
-            
             if (response.ok) {
                 closeAddFarmModal();
-                loadFarms();
                 document.getElementById('addFarmForm').reset();
+                loadFarms();
             } else {
                 alert('Greška pri dodavanju OPG-a');
             }
         };
-        
-        // Odjava
+
         document.getElementById('logoutBtn').onclick = () => {
             localStorage.clear();
             window.location.href = 'index.html';
         };
-        
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-        
-        // Inicijalizacija
+
         checkAuth();
+        document.getElementById('agentName').textContent = localStorage.getItem('userName') || 'Agent';
+        document.getElementById('monthSelect').value = new Date().getMonth();
         loadFarms();
         loadCalendar();
     </script>

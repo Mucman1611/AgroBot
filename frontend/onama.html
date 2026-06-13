@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriAssistant - O nama</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .onama-hero {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        .onama-hero h1 { font-size: 2.5rem; margin-bottom: 15px; }
+        .onama-hero p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+
+        .misija-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .misija-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            text-align: center;
+        }
+        .misija-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .misija-card h3 { color: var(--primary-dark); margin-bottom: 8px; }
+        .misija-card p { color: var(--text-light); font-size: 0.95rem; }
+
+        .tim-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .clan-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px 25px;
+            text-align: center;
+        }
+        .clan-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 15px;
+            color: white;
+            font-weight: bold;
+        }
+        .clan-ime { font-size: 1.2rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px; }
+        .clan-uloga {
+            display: inline-block;
+            background: #e8f5e9;
+            color: var(--primary-dark);
+            font-size: 0.8rem;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .clan-opis { color: var(--text-light); font-size: 0.9rem; line-height: 1.5; }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+        .section-sub {
+            color: var(--text-light);
+            margin-bottom: 25px;
+        }
+        .divider {
+            border: none;
+            border-top: 2px solid #eee;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🌾</span>
+            <span>AgriAssistant</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Početna</a>
+            <a href="onama.html" style="color: var(--primary-color); font-weight: 600;">O nama</a>
+            <a href="index.html" class="btn btn-outline">Prijava</a>
+            <a href="index.html" class="btn btn-primary">Registracija</a>
+        </div>
+    </nav>
+
+    <div class="onama-hero">
+        <h1>🌾 O nama</h1>
+        <p>Tri studenta s jednom misijom: učiniti poljoprivrednu papirologiju jednostavnom za svakoga.</p>
+    </div>
+
+    <div class="container">
+        <div style="margin-top: 40px;">
+            <div class="section-title">Naša misija</div>
+            <div class="section-sub">Zašto smo izgradili AgriAssistant</div>
+            <div class="misija-grid">
+                <div class="misija-card">
+                    <div class="misija-icon">📋</div>
+                    <h3>Manje papirologije</h3>
+                    <p>Natječaji, prijave i rokovi na jednom mjestu – bez gubljenja po papirima i portalima.</p>
+                </div>
+                <div class="misija-card">
+                    <div class="misija-icon">🎙️</div>
+                    <h3>Dostupno svima</h3>
+                    <p>Glasovno upravljanje za starije koji ne vole tipkati, agentski pristup za one kojima treba pomoć.</p>
+                </div>
+                <div class="misija-card">
+                    <div class="misija-icon">🤝</div>
+                    <h3>Lokalna zajednica</h3>
+                    <p>Podržavamo hrvatske poljoprivrednike da iskoriste svaki dostupni EU natječaj i poticaj.</p>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div>
+            <div class="section-title">Tim</div>
+            <div class="section-sub">Studenti Tehničkog veleučilišta u Zagrebu</div>
+            <div class="tim-grid">
+                <div class="clan-card">
+                    <div class="clan-avatar">IG</div>
+                    <div class="clan-ime">Ivano Gerstman</div>
+                    <span class="clan-uloga">Backend & Arhitektura</span>
+                    <div class="clan-opis">Razvoj agentskog dashboarda i serverske logike. Fokus na FastAPI, SQLite i integraciji modula.</div>
+                </div>
+                <div class="clan-card">
+                    <div class="clan-avatar">MŠ</div>
+                    <div class="clan-ime">Matko Šuperina</div>
+                    <span class="clan-uloga">Baza podataka & Notifikacije</span>
+                    <div class="clan-opis">Dizajn baze podataka s ulogama i implementacija glasovnog sučelja i sustava obavijesti.</div>
+                </div>
+                <div class="clan-card">
+                    <div class="clan-avatar">IP</div>
+                    <div class="clan-ime">Ivica Patrun</div>
+                    <span class="clan-uloga">Integracije & AI</span>
+                    <div class="clan-opis">Istraživanje i integracija vanjskih API-ja – glasovno upravljanje, OCR skeniranje i bankarski sandbox.</div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="card" style="text-align: center; padding: 40px;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📬</div>
+            <div class="section-title">Kontakt</div>
+            <p style="color: var(--text-light); margin-top: 10px;">
+                Tehničko veleučilište u Zagrebu &nbsp;|&nbsp; Konavoska 2, Zagreb<br>
+                Projekt razvijen u sklopu kolegija — akademska godina 2024./2025.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriAssistant - Poljoprivredni dashboard</title>
+    <title>AgriAssistant - Moj dashboard</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,8 +14,8 @@
         </div>
         <div class="nav-links">
             <span class="user-info">
-                <span id="farmerName">Franjo Horvat</span>
-                <span class="user-role role-farmer" id="farmerRole">Poljoprivrednik</span>
+                <span id="farmerName"></span>
+                <span class="user-role role-farmer">Poljoprivrednik</span>
             </span>
             <a href="#" id="logoutBtn" class="btn btn-outline btn-sm">Odjava</a>
         </div>
@@ -38,15 +38,17 @@
                 <span>📋 Moji OPG-ovi</span>
                 <button class="btn btn-primary btn-sm" onclick="showAddFarmModal()">+ Dodaj OPG</button>
             </div>
-            <div id="myFarmsList"></div>
+            <div id="myFarmsList">
+                <div class="loading" style="margin: 20px auto;"></div>
+            </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <span>🎙️ Glasovno upravljanje (R001)</span>
+                <span>🎙️ Glasovno upravljanje</span>
             </div>
             <div style="text-align: center; padding: 20px;">
-                <button id="voiceBtn" class="btn btn-primary" style="padding: 20px 40px; font-size: 1.5rem;">🎤 "Prijavi sve parcele"</button>
+                <button id="voiceBtn" class="btn btn-primary" style="padding: 20px 40px; font-size: 1.2rem;">🎤 Prijavi sve parcele</button>
                 <p id="voiceStatus" style="margin-top: 15px; color: #666;"></p>
             </div>
         </div>
@@ -60,10 +62,19 @@
             </div>
             <div class="modal-body">
                 <form id="addFarmForm">
-                    <div class="form-group"><label>Naziv OPG-a</label><input type="text" id="farmName" required></div>
-                    <div class="form-group"><label>Lokacija</label><input type="text" id="farmLocation" required></div>
-                    <div class="form-group"><label>Površina (ha)</label><input type="number" id="farmArea" step="0.1" required></div>
-                    <button type="submit" class="btn btn-primary">Dodaj</button>
+                    <div class="form-group">
+                        <label>Naziv OPG-a</label>
+                        <input type="text" id="farmName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Lokacija</label>
+                        <input type="text" id="farmLocation" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Površina (ha)</label>
+                        <input type="number" id="farmArea" step="0.1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Dodaj</button>
                 </form>
             </div>
         </div>
@@ -71,12 +82,16 @@
 
     <script>
         const API_URL = 'http://localhost:5000/api';
-        
+
         function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (!token) window.location.href = 'index.html';
+            if (!localStorage.getItem('token')) window.location.href = 'index.html';
         }
-        
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
+
         async function loadFarmerData() {
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/farmer/farms`, {
@@ -85,63 +100,101 @@
             if (response.ok) {
                 const farms = await response.json();
                 document.getElementById('myFarms').textContent = farms.length;
-                document.getElementById('myFarmsList').innerHTML = farms.map(f => `
-                    <div class="farm-item"><div><strong>${f.name}</strong><br>${f.location} | ${f.total_area_ha} ha</div></div>
-                `).join('');
+                const totalDeadlines = farms.reduce((sum, f) => sum + (f.deadlines?.length || 0), 0);
+                document.getElementById('myDeadlines').textContent = totalDeadlines;
+                if (farms.length === 0) {
+                    document.getElementById('myFarmsList').innerHTML = '<p style="text-align:center;padding:20px;color:#999;">Još nemate dodanih OPG-ova</p>';
+                } else {
+                    document.getElementById('myFarmsList').innerHTML = farms.map(f => `
+                        <div class="farm-item">
+                            <div>
+                                <div class="farm-name">${escapeHtml(f.name)}</div>
+                                <div style="font-size:0.85rem;color:#666;">${escapeHtml(f.location)} | ${f.total_area_ha} ha</div>
+                            </div>
+                            <div>
+                                ${f.deadlines && f.deadlines.length > 0
+                                    ? `<div class="farm-deadline">📅 ${f.deadlines.length} rokova</div>`
+                                    : '<div style="font-size:0.75rem;color:#999;">nema rokova</div>'}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                window.location.href = 'index.html';
             }
         }
-        
-        // Glasovna naredba (R001)
+
         const voiceBtn = document.getElementById('voiceBtn');
         const voiceStatus = document.getElementById('voiceStatus');
-        
+
         voiceBtn.onclick = async () => {
-            voiceStatus.textContent = '🎙️ Slušam... Recite "Prijavi sve parcele"';
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const mediaRecorder = new MediaRecorder(stream);
-                const audioChunks = [];
-                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const formData = new FormData();
-                    formData.append('audio', audioBlob);
+            if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+                voiceStatus.textContent = '❌ Vaš preglednik ne podržava glasovno upravljanje. Koristite Chrome.';
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'hr-HR';
+            recognition.interimResults = false;
+            voiceBtn.disabled = true;
+            voiceStatus.textContent = '🎙️ Slušam...';
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                voiceStatus.textContent = `Čujem: "${transcript}"`;
+                if (transcript.includes('prijavi') || transcript.includes('parcele') || transcript.includes('prijava')) {
+                    voiceStatus.textContent = '⏳ Obrađujem naredbu...';
                     const token = localStorage.getItem('token');
                     const response = await fetch(`${API_URL}/voice/command`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` },
-                        body: formData
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await response.json();
                     voiceStatus.textContent = data.message;
                     if (data.status === 'success') loadFarmerData();
-                };
-                mediaRecorder.start();
-                setTimeout(() => mediaRecorder.stop(), 5000);
-                setTimeout(() => stream.getTracks().forEach(track => track.stop()), 5000);
-            } catch (err) {
-                voiceStatus.textContent = '❌ Greška pri pristupu mikrofonu';
-            }
+                } else {
+                    voiceStatus.textContent = '❓ Naredba nije prepoznata. Recite "Prijavi sve parcele".';
+                }
+            };
+            recognition.onerror = () => {
+                voiceStatus.textContent = '❌ Greška pri prepoznavanju govora.';
+            };
+            recognition.onend = () => {
+                voiceBtn.disabled = false;
+            };
+            recognition.start();
         };
-        
+
         function showAddFarmModal() { document.getElementById('addFarmModal').classList.add('active'); }
         function closeAddFarmModal() { document.getElementById('addFarmModal').classList.remove('active'); }
-        
+
         document.getElementById('addFarmForm').onsubmit = async (e) => {
             e.preventDefault();
             const token = localStorage.getItem('token');
-            await fetch(`${API_URL}/farmer/farms/add`, {
+            const response = await fetch(`${API_URL}/farmer/farms/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name: document.getElementById('farmName').value, location: document.getElementById('farmLocation').value, total_area_ha: parseFloat(document.getElementById('farmArea').value) })
+                body: JSON.stringify({
+                    name: document.getElementById('farmName').value,
+                    location: document.getElementById('farmLocation').value,
+                    total_area_ha: parseFloat(document.getElementById('farmArea').value)
+                })
             });
-            closeAddFarmModal();
-            loadFarmerData();
+            if (response.ok) {
+                closeAddFarmModal();
+                document.getElementById('addFarmForm').reset();
+                loadFarmerData();
+            } else {
+                alert('Greška pri dodavanju OPG-a');
+            }
         };
-        
-        document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); window.location.href = 'index.html'; };
-        
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        };
+
         checkAuth();
+        document.getElementById('farmerName').textContent = localStorage.getItem('userName') || '';
         loadFarmerData();
     </script>
 </body>
